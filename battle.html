@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ranked Battle - EduRank</title>
+  <script>
+    document.documentElement.classList.add(localStorage.getItem("theme") === "light" ? "light" : "dark");
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .battle-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--surface-glass);
+        padding: 15px 5%;
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+    :root.dark .battle-header,
+    body.dark .battle-header {
+        background: var(--surface);
+    }
+    .vs-container {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+    .player-card {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--surface-2);
+        padding: 8px 15px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+    }
+    :root.dark .player-card,
+    body.dark .player-card { background: var(--surface-2); }
+    .player-card img {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+    }
+    .vs-text {
+        font-weight: 800;
+        color: #ef4444;
+        font-style: italic;
+        font-size: 1.2rem;
+    }
+    .timer {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .question-section {
+        padding: 40px 5%;
+        max-width: 800px;
+        margin: auto;
+    }
+    .question-card {
+        background: var(--surface-glass);
+        padding: 30px;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        margin-bottom: 30px;
+    }
+    :root.dark .question-card,
+    body.dark .question-card {
+        background: var(--surface);
+    }
+    .question-number {
+        color: var(--primary);
+        font-weight: 600;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+    }
+    .question-text {
+        font-size: 1.2rem;
+        margin-bottom: 25px;
+        line-height: 1.6;
+    }
+    .options {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    .option-label {
+        display: flex;
+        align-items: center;
+        padding: 15px 20px;
+        border: 2px solid var(--border);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: 0.2s ease;
+        font-weight: 500;
+    }
+    .option-label:hover {
+        border-color: var(--primary);
+        background: var(--primary-soft);
+    }
+    :root.dark .option-label:hover,
+    body.dark .option-label:hover {
+        background: var(--border);
+    }
+    .option-label input {
+        margin-right: 15px;
+        transform: scale(1.2);
+    }
+    .submit-btn {
+        width: 100%;
+        margin-top: 20px;
+        font-size: 1.1rem;
+    }
+    
+    /* Animation for answer feedback */
+    .correct-answer {
+        border-color: var(--success) !important;
+        background: #dcfce7 !important;
+        color: #166534;
+    }
+    :root.dark .correct-answer { background: rgba(22, 101, 52, 0.3) !important; color: #4ade80; }
+    
+    .wrong-answer {
+        border-color: #ef4444 !important;
+        background: #fee2e2 !important;
+        color: #991b1b;
+    }
+    :root.dark .wrong-answer { background: rgba(153, 27, 27, 0.3) !important; color: #f87171; }
+    
+    .feedback-msg {
+        text-align: center;
+        font-weight: 600;
+        margin-top: 15px;
+        font-size: 1.1rem;
+        display: none;
+    }
+    
+    @media(max-width: 768px) {
+        .vs-container {
+            flex-direction: column;
+            gap: 10px;
+        }
+        .battle-header {
+            flex-direction: column;
+            gap: 15px;
+            padding: 15px;
+        }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="battle-header">
+    <a href="#" onclick="confirmExit()" style="color: var(--text-light); text-decoration: none; font-size: 1.5rem;">
+        <i class="fa-solid fa-xmark"></i>
+    </a>
+    
+    <div class="vs-container">
+        <div class="player-card">
+            <img src="https://i.pravatar.cc/100?img=12" id="myAvatar" alt="You">
+            <div>
+                <div style="font-size: 0.9rem; font-weight: 600;" id="myName">You</div>
+                <div style="font-size: 0.75rem; color: var(--text-light);">Score: <span id="myScore">0</span></div>
+            </div>
+        </div>
+        <div class="vs-text">VS</div>
+        <div class="player-card">
+            <div>
+                <div style="font-size: 0.9rem; font-weight: 600;" id="oppName">Opponent</div>
+                <div style="font-size: 0.75rem; color: var(--text-light);">Score: <span id="oppScore">0</span></div>
+            </div>
+            <img src="https://i.pravatar.cc/100?img=5" id="oppImg" alt="Opponent">
+        </div>
+    </div>
+
+    <div class="timer">
+        <i class="fa-regular fa-clock"></i>
+        <span id="countdown">05:00</span>
+    </div>
+  </div>
+
+  <main class="question-section">
+    <div class="question-card">
+        <div class="question-number">
+            <span id="qNumText">Soal 1 / 5</span>
+        </div>
+        <div class="question-text" id="qText">
+            Loading...
+        </div>
+        <form id="battleForm">
+            <div class="options" id="optionsContainer">
+                <!-- Options will be generated here -->
+            </div>
+            <div id="feedbackMsg" class="feedback-msg"></div>
+            <button type="button" class="primary-btn submit-btn" id="actionBtn" onclick="handleAction()">Jawab</button>
+        </form>
+    </div>
+  </main>
+
+  <script src="interaksi.js"></script>
+  <script src="questions.js"></script>
+  <script>
+    // Load Game Options
+    const gameMode = localStorage.getItem("gameMode") || "ranked";
+    const gameParam = localStorage.getItem("gameParam") || "campuran";
+    
+    // Determine number of questions (5-10)
+    let numQuestions = Math.floor(Math.random() * 6) + 5; 
+    let questions = [];
+    
+    // If AI mode, Param is difficulty. Subject is always mixed.
+    // If Ranked/Classic, Param is subject.
+    if(gameMode === 'ai') {
+        questions = getRandomQuestions('campuran', numQuestions);
+    } else {
+        questions = getRandomQuestions(gameParam, numQuestions);
+    }
+    
+    // Fallback if not enough questions
+    if(questions.length === 0) {
+        questions = [
+            { q: "1+1?", options: ["1","2","3","4"], answer: 1 }
+        ];
+        numQuestions = 1;
+    }
+    numQuestions = questions.length;
+    const savedOppName = localStorage.getItem('opponentName');
+    const savedOppImg = localStorage.getItem('opponentImg');
+    
+    if(savedOppName) {
+        document.getElementById('oppName').innerText = savedOppName;
+    } else {
+        document.getElementById('oppName').innerText = "Random Player";
+    }
+    
+    if(savedOppImg) {
+        document.getElementById('oppImg').src = savedOppImg;
+    } else {
+        document.getElementById('oppImg').src = "https://i.pravatar.cc/100?img=15";
+    }
+    
+    // Timer Logic 1 minute per question
+    let totalTime = numQuestions * 60;
+    let timeInSeconds = totalTime;
+    const countdownEl = document.getElementById('countdown');
+
+    const interval = setInterval(() => {
+        let m = Math.floor(timeInSeconds / 60);
+        let s = timeInSeconds % 60;
+        
+        m = m < 10 ? '0' + m : m;
+        s = s < 10 ? '0' + s : s;
+        
+        countdownEl.innerHTML = `${m}:${s}`;
+        
+        if(timeInSeconds <= 0){
+            clearInterval(interval);
+            finishBattle();
+        } else {
+            timeInSeconds--;
+        }
+    }, 1000);
+
+    let currentQ = 0;
+    let correctAnswers = 0;
+    let userAnswers = []; // To store what user answered
+    let state = "ANSWERING"; // Since we remove feedback, state is always answering until finish
+    
+    // Opponent dummy simulation
+    let oppScore = 0;
+    let aiMultiplier = 1;
+    let aiAnswerChance = 0.55;
+    let aiResponseMs = 4500;
+    if(gameMode === 'ai') {
+        if(gameParam === 'easy') {
+            aiMultiplier = 0.55;
+            aiAnswerChance = 0.42;
+            aiResponseMs = 6200;
+        }
+        if(gameParam === 'medium') {
+            aiMultiplier = 1;
+            aiAnswerChance = 0.58;
+            aiResponseMs = 4600;
+        }
+        if(gameParam === 'hard') {
+            aiMultiplier = 1.55;
+            aiAnswerChance = 0.72;
+            aiResponseMs = 3200;
+        }
+        if(gameParam === 'extreme') {
+            aiMultiplier = 2;
+            aiAnswerChance = 0.88;
+            aiResponseMs = 2200;
+        }
+    }
+    
+    setInterval(() => {
+        if(Math.random() < aiAnswerChance && oppScore < (numQuestions * 10)) {
+            oppScore += Math.floor(10 * aiMultiplier);
+            document.getElementById('oppScore').innerText = oppScore;
+        }
+    }, aiResponseMs);
+
+    function renderQuestion() {
+        state = "ANSWERING";
+        const qData = questions[currentQ];
+        document.getElementById('qNumText').innerText = `Soal ${currentQ + 1} / ${numQuestions}`;
+        document.getElementById('qText').innerText = qData.q;
+        
+        const optsContainer = document.getElementById('optionsContainer');
+        optsContainer.innerHTML = '';
+        
+        const labels = ['A', 'B', 'C', 'D'];
+        qData.options.forEach((opt, idx) => {
+            optsContainer.innerHTML += `
+                <label class="option-label" id="lbl_${idx}">
+                    <input type="radio" name="answer" value="${idx}">
+                    ${labels[idx]}. ${opt}
+                </label>
+            `;
+        });
+        
+        document.getElementById('feedbackMsg').style.display = 'none';
+        
+        const btn = document.getElementById('actionBtn');
+        btn.innerText = "Jawab";
+        btn.classList.remove('secondary-btn');
+        btn.classList.add('primary-btn');
+    }
+
+    function handleAction() {
+        if(state === "ANSWERING") {
+            checkAnswer();
+        } else {
+            nextQuestion();
+        }
+    }
+
+    function checkAnswer() {
+        const selected = document.querySelector('input[name="answer"]:checked');
+        if(!selected) {
+            showCustomAlert("Pilih jawaban terlebih dahulu!", "error");
+            return;
+        }
+        
+        const ansIdx = parseInt(selected.value);
+        userAnswers.push(ansIdx);
+        
+        const correctIdx = questions[currentQ].answer;
+        if(ansIdx === correctIdx) {
+            correctAnswers++;
+            document.getElementById('myScore').innerText = correctAnswers * 10;
+        }
+        
+        // Immediately move to next question
+        nextQuestion();
+    }
+
+    function showFeedback(text, color) {
+        // Obsolete, but kept for safety
+    }
+
+    function nextQuestion() {
+        currentQ++;
+        if(currentQ < questions.length) {
+            renderQuestion();
+        } else {
+            finishBattle();
+        }
+    }
+
+    function confirmExit() {
+        showCustomConfirm("Yakin ingin keluar? Proses match tidak akan disimpan.", () => {
+            navigateWithTransition("index.html?view=main#ranked");
+        });
+    }
+
+    function finishBattle() {
+        clearInterval(interval);
+        
+        const timeTaken = totalTime - timeInSeconds;
+        
+        // Save to localStorage
+        localStorage.setItem('battleScore', correctAnswers);
+        localStorage.setItem('battleTotal', numQuestions);
+        localStorage.setItem('battleAccuracy', (correctAnswers / numQuestions) * 100);
+        localStorage.setItem('battleTime', timeTaken);
+        localStorage.setItem('battleOppScore', oppScore / 10);
+        localStorage.setItem('userAnswers', JSON.stringify(userAnswers));
+        localStorage.setItem('matchQuestions', JSON.stringify(questions));
+        
+        // Redirect to results
+        navigateWithTransition("battle-result.html");
+    }
+
+    // Init
+    renderQuestion();
+
+  </script>
+</body>
+</html>
