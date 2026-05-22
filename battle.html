@@ -213,17 +213,22 @@
     // Load Game Options
     const gameMode = localStorage.getItem("gameMode") || "ranked";
     const gameParam = localStorage.getItem("gameParam") || "campuran";
+    const selectedSubject = localStorage.getItem("selectedSubject") || gameParam || "campuran";
+    const aiDifficulty = localStorage.getItem("aiDifficulty") || gameParam || "normal";
+    const friendSettings = JSON.parse(localStorage.getItem("friendRoomSettings") || "{}");
     
     // Determine number of questions (5-10)
-    let numQuestions = Math.floor(Math.random() * 6) + 5; 
+    let numQuestions = gameMode === 'friend'
+        ? Math.max(1, Math.min(10, parseInt(friendSettings.questions || 5)))
+        : Math.floor(Math.random() * 6) + 5;
     let questions = [];
     
-    // If AI mode, Param is difficulty. Subject is always mixed.
-    // If Ranked/Classic, Param is subject.
+    // If AI mode, subject and difficulty are stored separately.
+    // If Ranked/Classic/Friend, Param is subject unless a selected subject exists.
     if(gameMode === 'ai') {
-        questions = getRandomQuestions('campuran', numQuestions);
+        questions = getRandomQuestions(selectedSubject, numQuestions);
     } else {
-        questions = getRandomQuestions(gameParam, numQuestions);
+        questions = getRandomQuestions(selectedSubject, numQuestions);
     }
     
     // Fallback if not enough questions
@@ -249,8 +254,10 @@
         document.getElementById('oppImg').src = "https://i.pravatar.cc/100?img=15";
     }
     
-    // Timer Logic 1 minute per question
-    let totalTime = numQuestions * 60;
+    // Timer Logic
+    let totalTime = gameMode === 'friend'
+        ? Math.max(1, Math.min(10, parseInt(friendSettings.time || 5))) * 60
+        : numQuestions * 60;
     let timeInSeconds = totalTime;
     const countdownEl = document.getElementById('countdown');
 
@@ -282,25 +289,20 @@
     let aiAnswerChance = 0.55;
     let aiResponseMs = 4500;
     if(gameMode === 'ai') {
-        if(gameParam === 'easy') {
+        if(aiDifficulty === 'easy') {
             aiMultiplier = 0.55;
             aiAnswerChance = 0.42;
             aiResponseMs = 6200;
         }
-        if(gameParam === 'medium') {
+        if(aiDifficulty === 'normal') {
             aiMultiplier = 1;
             aiAnswerChance = 0.58;
             aiResponseMs = 4600;
         }
-        if(gameParam === 'hard') {
+        if(aiDifficulty === 'hard') {
             aiMultiplier = 1.55;
             aiAnswerChance = 0.72;
             aiResponseMs = 3200;
-        }
-        if(gameParam === 'extreme') {
-            aiMultiplier = 2;
-            aiAnswerChance = 0.88;
-            aiResponseMs = 2200;
         }
     }
     

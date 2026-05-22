@@ -1371,6 +1371,21 @@ if(searchInput) {
 // ===============================
 
 let currentGameMode = '';
+let selectedComputerSubject = '';
+
+const GAME_SUBJECT_OPTIONS = [
+    { key:"matematika", label:"Matematika", icon:"fa-calculator", color:"#2563eb" },
+    { key:"fisika", label:"Fisika", icon:"fa-magnet", color:"#8b5cf6" },
+    { key:"bahasainggris", label:"Bahasa Inggris", icon:"fa-language", color:"#ec4899" },
+    { key:"informatika", label:"Informatika", icon:"fa-laptop-code", color:"#14b8a6" },
+    { key:"campuran", label:"Campuran", icon:"fa-shuffle", color:"#f59e0b" }
+];
+
+const GRADE_OPTIONS = [
+    { key:"sd", label:"SD", status:"coming" },
+    { key:"smp", label:"SMP", status:"coming" },
+    { key:"sma", label:"SMA", status:"ready" }
+];
 
 function openGameModal(mode) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1422,6 +1437,24 @@ function openGameModal(mode) {
         modal.classList.add("show");
         return;
     }
+
+    if(mode === 'ranked' || mode === 'classic') {
+        title.innerText = mode === 'ranked' ? "Pilih Jenjang Ranked" : "Pilih Jenjang Classic";
+        optionsContainer.innerHTML = `
+            <div class="grade-grid">
+                ${GRADE_OPTIONS.map(item => `
+                    <button class="grade-card ${item.status === "coming" ? "is-coming" : ""}" onclick="${item.status === "ready" ? `renderSubjectPicker('${mode}', '${item.key}')` : `showCustomAlert('Jenjang ${item.label} masih coming soon.', 'info')`}">
+                        <span class="custom-mode-icon"><i class="fa-solid ${item.key === "sma" ? "fa-school" : "fa-book-open"}"></i></span>
+                        <h4>${item.label}</h4>
+                        <p>${item.status === "ready" ? "Pilih mapel dan langsung masuk battle." : "Opsi sudah tersedia, konten akan dibuka berikutnya."}</p>
+                        ${item.status === "coming" ? `<span class="soon-badge inline-soon">Coming Soon</span>` : ""}
+                    </button>
+                `).join("")}
+            </div>
+        `;
+        modal.classList.add("show");
+        return;
+    }
     
     if(mode === 'custom') {
         title.innerText = "Pilih Custom Mode";
@@ -1458,6 +1491,35 @@ function openGameModal(mode) {
     }
     
     modal.classList.add("show");
+}
+
+function renderSubjectPicker(mode, grade, backTarget) {
+    const title = document.getElementById("modalTitle");
+    const optionsContainer = document.getElementById("modalOptions");
+    if(!title || !optionsContainer) return;
+
+    const modeLabel = mode === "ranked" ? "Ranked" : mode === "classic" ? "Classic" : "Custom";
+    title.innerText = `Pilih Mapel ${modeLabel}`;
+    optionsContainer.innerHTML = `
+        <div class="room-code-pill">
+            <span><i class="fa-solid fa-layer-group"></i> Jenjang: <strong>${grade.toUpperCase()}</strong></span>
+            <span>${modeLabel}</span>
+        </div>
+        <div class="subject-choice-grid">
+            ${GAME_SUBJECT_OPTIONS.map(item => `
+                <button class="modal-option-btn" onclick="${mode === "ai" ? `renderComputerDifficulty('${item.key}')` : `startGradeGame('${mode}', '${grade}', '${item.key}')`}">
+                    <i class="fa-solid ${item.icon}" style="color:${item.color};"></i> ${item.label}
+                </button>
+            `).join("")}
+        </div>
+        <button class="secondary-btn" onclick="${backTarget === "custom" ? "renderComputerMode()" : `openGameModal('${mode}')`}">Kembali</button>
+    `;
+}
+
+function startGradeGame(mode, grade, subject) {
+    localStorage.setItem("selectedGrade", grade);
+    localStorage.setItem("selectedSubject", subject);
+    startGame(mode, subject);
 }
 
 function initActiveNavbar() {
@@ -1527,17 +1589,40 @@ function renderComputerMode() {
     if(!title || !optionsContainer) return;
 
     title.innerText = "Lawan Computer";
-    const difficulties = [
-        { key:"easy", label:"Easy", desc:"Respon santai, akurasi rendah, cocok untuk pemanasan.", speed:"Lambat", accuracy:"45%" },
-        { key:"medium", label:"Medium", desc:"Tempo stabil dengan akurasi menengah.", speed:"Normal", accuracy:"65%" },
-        { key:"hard", label:"Hard", desc:"Jawaban lebih cepat dan akurat untuk latihan serius.", speed:"Cepat", accuracy:"82%" },
-        { key:"extreme", label:"Extreme", desc:"Mode esports: respon agresif dan akurasi tinggi.", speed:"Sangat cepat", accuracy:"94%" }
-    ];
-
     optionsContainer.innerHTML = `
         <div class="room-code-pill">
             <span><i class="fa-solid fa-robot"></i> Opponent: <strong>Computer</strong></span>
-            <span>Avatar AI aktif</span>
+            <span>Pilih mapel dulu</span>
+        </div>
+        <div class="subject-choice-grid">
+            ${GAME_SUBJECT_OPTIONS.map(item => `
+                <button class="modal-option-btn" onclick="renderComputerDifficulty('${item.key}')">
+                    <i class="fa-solid ${item.icon}" style="color:${item.color};"></i> ${item.label}
+                </button>
+            `).join("")}
+        </div>
+        <button class="secondary-btn" onclick="openGameModal('custom')">Kembali</button>
+    `;
+}
+
+function renderComputerDifficulty(subject) {
+    const title = document.getElementById("modalTitle");
+    const optionsContainer = document.getElementById("modalOptions");
+    if(!title || !optionsContainer) return;
+
+    selectedComputerSubject = subject;
+    const subjectLabel = GAME_SUBJECT_OPTIONS.find(item => item.key === subject)?.label || "Mapel";
+    const difficulties = [
+        { key:"easy", label:"Easy", desc:"Respon santai, akurasi rendah, cocok untuk pemanasan.", speed:"Lambat", accuracy:"45%" },
+        { key:"normal", label:"Normal", desc:"Tempo stabil dengan akurasi menengah.", speed:"Normal", accuracy:"65%" },
+        { key:"hard", label:"Hard", desc:"Jawaban lebih cepat dan akurat untuk latihan serius.", speed:"Cepat", accuracy:"82%" }
+    ];
+
+    title.innerText = "Pilih Difficulty";
+    optionsContainer.innerHTML = `
+        <div class="room-code-pill">
+            <span><i class="fa-solid fa-book"></i> Mapel: <strong>${subjectLabel}</strong></span>
+            <span>Computer</span>
         </div>
         <div class="difficulty-grid">
             ${difficulties.map(item => `
@@ -1551,7 +1636,7 @@ function renderComputerMode() {
                 </button>
             `).join("")}
         </div>
-        <button class="secondary-btn" onclick="openGameModal('custom')">Kembali</button>
+        <button class="secondary-btn" onclick="renderComputerMode()">Kembali</button>
     `;
 }
 
@@ -1559,7 +1644,8 @@ function startComputerBattle(difficulty) {
     localStorage.setItem("opponentName", "Computer");
     localStorage.setItem("opponentImg", "https://api.dicebear.com/8.x/bottts-neutral/svg?seed=edurank-computer");
     localStorage.setItem("aiDifficulty", difficulty);
-    startGame("ai", difficulty);
+    localStorage.setItem("selectedSubject", selectedComputerSubject || "matematika");
+    startGame("ai", selectedComputerSubject || "matematika");
 }
 
 function renderFriendMode() {
@@ -1569,8 +1655,34 @@ function renderFriendMode() {
 
     const code = localStorage.getItem("roomCode") || generateRoomCode();
     localStorage.setItem("roomCode", code);
-    title.innerText = "Lobby Lawan Teman";
+    title.innerText = "Setting Lawan Teman";
     optionsContainer.innerHTML = `
+        <div class="custom-settings-form">
+            <label>
+                <span>Waktu Bermain</span>
+                <input class="room-input" id="friendTimeInput" type="number" min="1" max="10" value="5" />
+            </label>
+            <label>
+                <span>Jumlah Soal</span>
+                <input class="room-input" id="friendQuestionInput" type="number" min="1" max="10" value="5" />
+            </label>
+            <label>
+                <span>Jenjang</span>
+                <select class="room-input" id="friendGradeInput" onchange="handleFriendGradeChange()">
+                    <option value="sd">SD - Coming Soon</option>
+                    <option value="smp">SMP - Coming Soon</option>
+                    <option value="sma" selected>SMA</option>
+                </select>
+            </label>
+            <label>
+                <span>Kelas</span>
+                <select class="room-input" id="friendClassInput">
+                    <option value="10">Kelas 10 SMA</option>
+                    <option value="11">Kelas 11 SMA</option>
+                    <option value="12">Kelas 12 SMA</option>
+                </select>
+            </label>
+        </div>
         <div class="room-card">
             <h4><i class="fa-solid fa-plus"></i> Create Room</h4>
             <p>Buat lobby privat dan bagikan kode ke teman.</p>
@@ -1578,6 +1690,7 @@ function renderFriendMode() {
                 <span>Room Code: <strong id="roomCodeText">${code}</strong></span>
                 <button class="secondary-btn" style="padding:8px 12px;" onclick="copyRoomCode()">Copy</button>
             </div>
+            <button class="primary-btn" style="width:100%; margin-top:14px;" onclick="createFriendRoom()">Buat Room</button>
         </div>
         <div class="room-card">
             <h4><i class="fa-solid fa-right-to-bracket"></i> Join Room</h4>
@@ -1590,6 +1703,51 @@ function renderFriendMode() {
         </div>
         <button class="secondary-btn" onclick="openGameModal('custom')">Kembali</button>
     `;
+}
+
+function handleFriendGradeChange() {
+    const grade = document.getElementById("friendGradeInput")?.value || "sma";
+    const classInput = document.getElementById("friendClassInput");
+    if(!classInput) return;
+
+    if(grade !== "sma") {
+        showCustomAlert(`Jenjang ${grade.toUpperCase()} masih coming soon. Untuk sekarang room diarahkan ke SMA.`, "info");
+        classInput.innerHTML = `
+            <option value="coming-soon">Coming Soon</option>
+        `;
+        return;
+    }
+
+    classInput.innerHTML = `
+        <option value="10">Kelas 10 SMA</option>
+        <option value="11">Kelas 11 SMA</option>
+        <option value="12">Kelas 12 SMA</option>
+    `;
+}
+
+function getFriendRoomSettings() {
+    const time = clampNumber(document.getElementById("friendTimeInput")?.value, 1, 10, 5);
+    const questions = clampNumber(document.getElementById("friendQuestionInput")?.value, 1, 10, 5);
+    const grade = document.getElementById("friendGradeInput")?.value || "sma";
+    const classLevel = document.getElementById("friendClassInput")?.value || "10";
+    return { time, questions, grade, classLevel };
+}
+
+function clampNumber(value, min, max, fallback) {
+    const parsed = parseInt(value, 10);
+    if(Number.isNaN(parsed)) return fallback;
+    return Math.max(min, Math.min(max, parsed));
+}
+
+function createFriendRoom() {
+    const settings = getFriendRoomSettings();
+    if(settings.grade !== "sma") {
+        showCustomAlert("SD dan SMP masih coming soon. Pilih SMA untuk membuat room sekarang.", "info");
+        return;
+    }
+    localStorage.setItem("friendRoomSettings", JSON.stringify(settings));
+    localStorage.setItem("selectedSubject", "campuran");
+    showCustomAlert(`Room dibuat: ${settings.time} menit, ${settings.questions} soal, kelas ${settings.classLevel} SMA.`, "success");
 }
 
 function generateRoomCode() {
@@ -1613,6 +1771,13 @@ function joinFriendRoom() {
         showCustomAlert("Masukkan username atau room code terlebih dahulu.", "error");
         return;
     }
+    const settings = getFriendRoomSettings();
+    if(settings.grade !== "sma") {
+        showCustomAlert("SD dan SMP masih coming soon. Pilih SMA untuk bermain sekarang.", "info");
+        return;
+    }
+    localStorage.setItem("friendRoomSettings", JSON.stringify(settings));
+    localStorage.setItem("selectedSubject", "campuran");
     localStorage.setItem("opponentName", value.startsWith("@") ? value : "Friend Room");
     localStorage.setItem("opponentImg", "https://i.pravatar.cc/100?img=32");
     showCustomConfirm(`Masuk ke lobby ${value}?`, () => startGame("friend", value));
@@ -1624,29 +1789,140 @@ function renderTournamentMode() {
     if(!title || !optionsContainer) return;
 
     title.innerText = "Turnamen Custom";
-    const tournaments = [
-        { name:"STEM Arena Cup", prize:"Beasiswa belajar 1 bulan", players:"128/256", starts:"02:18:40" },
-        { name:"Math Blitz Weekend", prize:"Badge Grandmaster", players:"74/128", starts:"18:05:12" },
-        { name:"Informatics Clash", prize:"ELO Booster +300", players:"31/64", starts:"1 hari" }
-    ];
-
     optionsContainer.innerHTML = `
-        <div class="tournament-grid">
-            ${tournaments.map(t => `
-                <div class="tournament-card">
-                    <h4><i class="fa-solid fa-bolt"></i> ${t.name}</h4>
-                    <p>Upcoming tournament dengan format bracket cepat.</p>
-                    <div class="tournament-meta">
-                        <span><i class="fa-solid fa-gift"></i> ${t.prize}</span>
-                        <span><i class="fa-solid fa-users"></i> ${t.players}</span>
-                        <span><i class="fa-regular fa-clock"></i> ${t.starts}</span>
-                    </div>
-                    <button class="primary-btn" style="margin-top:14px;" onclick="showCustomAlert('Kamu berhasil masuk waiting list turnamen.', 'success')">Daftar</button>
+        <div class="tournament-builder">
+            <div class="custom-settings-form tournament-form">
+                <label class="form-wide">
+                    <span>Judul Turnamen</span>
+                    <input class="room-input" id="tournamentTitleInput" placeholder="Contoh: SMA Science Clash" />
+                </label>
+                <label>
+                    <span>Waktu per Match</span>
+                    <input class="room-input" id="tournamentTimeInput" type="number" min="1" max="10" value="5" />
+                </label>
+                <label>
+                    <span>Jumlah Soal per Match</span>
+                    <input class="room-input" id="tournamentQuestionInput" type="number" min="1" max="10" value="5" />
+                </label>
+                <label class="form-wide">
+                    <span>Jadwal Turnamen</span>
+                    <input class="room-input" id="tournamentScheduleInput" type="datetime-local" />
+                </label>
+                <label class="form-wide">
+                    <span>Slot Peserta</span>
+                    <select class="room-input" id="tournamentSlotInput">
+                        <option value="8">8 peserta</option>
+                        <option value="16" selected>16 peserta</option>
+                        <option value="32">32 peserta</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="multi-select-group">
+                <span>Mapel</span>
+                <div class="chip-grid">
+                    ${GAME_SUBJECT_OPTIONS.map(item => `
+                        <label class="setting-chip">
+                            <input type="checkbox" name="tournamentSubject" value="${item.key}" ${item.key === "matematika" ? "checked" : ""} />
+                            <i class="fa-solid ${item.icon}"></i>
+                            ${item.label}
+                        </label>
+                    `).join("")}
                 </div>
-            `).join("")}
+            </div>
+
+            <div class="multi-select-group">
+                <span>Kelas</span>
+                <div class="chip-grid">
+                    <label class="setting-chip is-muted"><input type="checkbox" name="tournamentClass" value="1-sd" /> 1 SD <small>Coming Soon</small></label>
+                    <label class="setting-chip is-muted"><input type="checkbox" name="tournamentClass" value="7-smp" /> 7 SMP <small>Coming Soon</small></label>
+                    <label class="setting-chip"><input type="checkbox" name="tournamentClass" value="10-sma" checked /> 10 SMA</label>
+                    <label class="setting-chip"><input type="checkbox" name="tournamentClass" value="11-sma" /> 11 SMA</label>
+                    <label class="setting-chip"><input type="checkbox" name="tournamentClass" value="12-sma" /> 12 SMA</label>
+                </div>
+            </div>
+
+            <div class="custom-settings-form tournament-form">
+                <label>
+                    <span>Format</span>
+                    <select class="room-input" id="tournamentFormatInput">
+                        <option value="single">Single elimination</option>
+                        <option value="round-robin">Round robin mini</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Mode Reward</span>
+                    <select class="room-input" id="tournamentRewardInput">
+                        <option value="achievement">Achievement + badge</option>
+                        <option value="elo">Achievement + bonus ELO</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="achievement-preview">
+                <i class="fa-solid fa-award"></i>
+                <div>
+                    <strong>Reward Juara</strong>
+                    <span>Achievement Tournament Champion, trophy badge, dan riwayat kemenangan tersimpan setelah turnamen dimenangkan.</span>
+                </div>
+            </div>
+
+            <div class="room-actions">
+                <button class="primary-btn" onclick="createTournament()">Buat Turnamen</button>
+                <button class="secondary-btn" onclick="simulateTournamentWin()">Simulasi Menang</button>
+            </div>
         </div>
         <button class="secondary-btn" onclick="openGameModal('custom')">Kembali</button>
     `;
+}
+
+function createTournament() {
+    const title = document.getElementById("tournamentTitleInput")?.value.trim();
+    const subjects = Array.from(document.querySelectorAll("input[name='tournamentSubject']:checked")).map(item => item.value);
+    const classes = Array.from(document.querySelectorAll("input[name='tournamentClass']:checked")).map(item => item.value);
+    const time = clampNumber(document.getElementById("tournamentTimeInput")?.value, 1, 10, 5);
+    const questions = clampNumber(document.getElementById("tournamentQuestionInput")?.value, 1, 10, 5);
+    const schedule = document.getElementById("tournamentScheduleInput")?.value || "";
+    const slots = document.getElementById("tournamentSlotInput")?.value || "16";
+    const format = document.getElementById("tournamentFormatInput")?.value || "single";
+    const reward = document.getElementById("tournamentRewardInput")?.value || "achievement";
+
+    if(!title) {
+        showCustomAlert("Judul turnamen wajib diisi.", "error");
+        return;
+    }
+
+    if(!subjects.length || !classes.length) {
+        showCustomAlert("Pilih minimal satu mapel dan satu kelas.", "error");
+        return;
+    }
+
+    if(!classes.some(item => item.includes("sma"))) {
+        showCustomAlert("SD dan SMP masih coming soon. Pilih minimal satu kelas SMA.", "info");
+        return;
+    }
+
+    const tournament = { title, subjects, classes, time, questions, schedule, slots, format, reward, status:"created" };
+    localStorage.setItem("customTournament", JSON.stringify(tournament));
+    showCustomAlert(`Turnamen ${title} berhasil dibuat. Reward achievement aktif untuk pemenang.`, "success");
+}
+
+function simulateTournamentWin() {
+    const tournament = JSON.parse(localStorage.getItem("customTournament") || "{}");
+    const title = tournament.title || "Custom Tournament";
+    const achievements = JSON.parse(localStorage.getItem("achievements") || "[]");
+    const achievement = {
+        id:`tournament-${Date.now()}`,
+        title:"Tournament Champion",
+        desc:`Menang turnamen ${title}`,
+        reward:"Trophy badge + Champion profile title",
+        earnedAt:new Date().toISOString()
+    };
+
+    achievements.push(achievement);
+    localStorage.setItem("achievements", JSON.stringify(achievements));
+    localStorage.setItem("latestAchievement", JSON.stringify(achievement));
+    showCustomAlert(`Achievement unlocked: ${achievement.title}. Reward Trophy Badge sudah ditambahkan.`, "success");
 }
 
 function closeGameModal() {
@@ -2207,9 +2483,54 @@ function initAuthGate(){
         loginForm.addEventListener("submit", handleLoginSubmit);
     }
 
+    initCameraUploads();
     initLearningStyleQuiz();
 
     syncAuthThemeIcon();
+}
+
+function initCameraUploads(){
+    setupCameraInput("studentPhotoInput", "studentPhotoPreview", "studentPhotoData");
+    setupCameraInput("studentCardPhotoInput", "studentCardPhotoPreview", "studentCardPhotoData");
+}
+
+function setupCameraInput(inputId, previewId, storageKey){
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    if(!input || !preview || input.dataset.ready === "true") return;
+
+    input.dataset.ready = "true";
+    input.addEventListener("change", () => {
+        const file = input.files && input.files[0];
+        if(!file) return;
+
+        if(!file.type.startsWith("image/")){
+            showCustomAlert("File harus berupa gambar.", "error");
+            input.value = "";
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = reader.result;
+            try {
+                localStorage.setItem(storageKey, result);
+            } catch(error) {
+                try {
+                    localStorage.setItem(`${storageKey}Ready`, "true");
+                } catch(innerError) {
+                    // Preview still confirms the capture even if browser storage is full.
+                }
+            }
+            preview.innerHTML = `
+                <img src="${result}" alt="Preview foto terunggah" />
+                <strong>Foto siap diverifikasi</strong>
+                <small>Ketuk untuk ambil ulang jika fotonya belum jelas.</small>
+            `;
+            input.closest(".auth-field")?.classList.remove("is-invalid");
+        };
+        reader.readAsDataURL(file);
+    });
 }
 
 function switchAuthMode(mode){
@@ -2238,6 +2559,8 @@ function handleRegisterSubmit(event){
     const email = getAuthValue("authRegisterEmail");
     const password = getAuthValue("authRegisterPassword");
     const confirm = getAuthValue("authRegisterConfirm");
+    const studentPhoto = document.getElementById("studentPhotoInput")?.files?.[0];
+    const studentCardPhoto = document.getElementById("studentCardPhotoInput")?.files?.[0];
     let valid = true;
 
     if(!isValidFullName(name)){
@@ -2252,6 +2575,16 @@ function handleRegisterSubmit(event){
 
     if(!isValidEmail(email)){
         setAuthWarning("authRegisterEmail", "authRegisterEmailWarning", "Email tidak valid. Gunakan format seperti nama@email.com.");
+        valid = false;
+    }
+
+    if(!studentPhoto){
+        setAuthWarning("studentPhotoInput", "studentPhotoWarning", "Foto pelajar wajib diambil atau diunggah lewat kamera.");
+        valid = false;
+    }
+
+    if(!studentCardPhoto){
+        setAuthWarning("studentCardPhotoInput", "studentCardPhotoWarning", "Foto wajah bersama kartu pelajar wajib diambil untuk verifikasi.");
         valid = false;
     }
 
@@ -2274,6 +2607,8 @@ function handleRegisterSubmit(event){
         name,
         email,
         birthDate,
+        hasStudentPhoto:true,
+        hasStudentCardPhoto:true,
         provider:"email"
     });
     startLearningStyleQuiz();
@@ -2340,6 +2675,8 @@ function saveAuthUser(user){
     localStorage.setItem("email", user.email);
     localStorage.setItem("birthDate", user.birthDate || "");
     localStorage.setItem("authProvider", user.provider);
+    localStorage.setItem("studentPhotoVerified", user.hasStudentPhoto ? "pending-review" : "provider-skip");
+    localStorage.setItem("studentCardVerified", user.hasStudentCardPhoto ? "pending-review" : "provider-skip");
     localStorage.setItem("edurankLoggedIn", "true");
 
     if(!localStorage.getItem("bio")) localStorage.setItem("bio", "Bio belum diisi");

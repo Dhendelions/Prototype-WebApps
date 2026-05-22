@@ -80,6 +80,34 @@
             <small class="auth-warning" id="authBirthDateWarning"></small>
           </label>
 
+          <div class="auth-camera-grid">
+            <label class="auth-field auth-upload-field">
+              <span>Foto Pelajar</span>
+              <div class="auth-upload-box" data-upload-box="studentPhoto">
+                <input type="file" id="studentPhotoInput" accept="image/*" capture="environment" />
+                <div class="auth-upload-preview" id="studentPhotoPreview">
+                  <i class="fa-solid fa-camera"></i>
+                  <strong>Ambil foto pelajar</strong>
+                  <small>Gunakan kamera belakang HP/tablet jika kamera PC tidak tersedia.</small>
+                </div>
+              </div>
+              <small class="auth-warning" id="studentPhotoWarning"></small>
+            </label>
+
+            <label class="auth-field auth-upload-field">
+              <span>Foto Wajah + Kartu Pelajar</span>
+              <div class="auth-upload-box" data-upload-box="studentCardPhoto">
+                <input type="file" id="studentCardPhotoInput" accept="image/*" capture="user" />
+                <div class="auth-upload-preview" id="studentCardPhotoPreview">
+                  <i class="fa-solid fa-id-card-clip"></i>
+                  <strong>Wajah dan kartu</strong>
+                  <small>Pastikan wajah dan kartu pelajar terlihat jelas dalam satu foto.</small>
+                </div>
+              </div>
+              <small class="auth-warning" id="studentCardPhotoWarning"></small>
+            </label>
+          </div>
+
           <label class="auth-field">
             <span>Email</span>
             <div class="auth-input-wrap">
